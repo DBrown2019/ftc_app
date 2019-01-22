@@ -48,7 +48,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefau
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 
 @Autonomous(name = "Vuforia Track Andy Mark", group = "Vuforia")
-//@Disabled
+@Disabled
 
 public class ExampleVuforiaTrackImage extends OpMode {
     private VuforiaLocalizer vuforiaLocalizer;

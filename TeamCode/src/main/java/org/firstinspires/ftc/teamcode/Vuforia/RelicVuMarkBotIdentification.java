@@ -29,13 +29,14 @@
 package org.firstinspires.ftc.teamcode.Vuforia;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.navigation.RelicRecoveryVuMark;
 
 
 @Autonomous(name = "Relic VuMarkBot Id", group = "Vuforia")
-//@Disabled
+@Disabled
 public class RelicVuMarkBotIdentification extends OpMode {
 
     public static final String TAG = "Vuforia VuMark Sample";

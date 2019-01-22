@@ -21,9 +21,11 @@ public class HardwareBotman {
     public DcMotor leftWheel;
     public DcMotor extension;
 
+
     public DcMotor collectorSpinner;
     public DcMotor armLift;
     public DcMotor armTwist;
+
 
 
     BNO055IMU imu;
@@ -57,7 +59,6 @@ public class HardwareBotman {
         //Define and initialize Motors
         leftWheel = hwMap.get(DcMotor.class, "left_drive");
         rightWheel = hwMap.get(DcMotor.class, "right_drive");
-
         extension = hwMap.get(DcMotor.class, "latch");
 
         collectorSpinner = hwMap.get(DcMotor.class, "collector");

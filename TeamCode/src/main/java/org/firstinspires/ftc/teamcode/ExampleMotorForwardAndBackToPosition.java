@@ -38,7 +38,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 @TeleOp(name = "Example Motor Forward and Back", group = "Example")
-//@Disabled
+@Disabled
 
 public class ExampleMotorForwardAndBackToPosition extends OpMode {
 

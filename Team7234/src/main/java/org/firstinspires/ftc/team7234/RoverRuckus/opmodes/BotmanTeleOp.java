@@ -133,13 +133,6 @@ public class BotmanTeleOp extends OpMode {
         }
 
 
-
-
-
-
-
-
-        //Get the current position of the motors
         telemetry.addData("Extension Position", robot.extension.getCurrentPosition());
         telemetry.addData("Robot Heading: ", robot.heading());
         telemetry.addData("Robot Pitch", robot.pitch());

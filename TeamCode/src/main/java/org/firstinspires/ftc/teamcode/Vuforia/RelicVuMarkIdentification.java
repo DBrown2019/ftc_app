@@ -41,7 +41,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefau
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 
 @Autonomous(name = "Relic VuMark Id", group = "Vuforia")
-//@Disabled
+@Disabled
 public class RelicVuMarkIdentification extends OpMode {
 
     public static final String TAG = "Vuforia VuMark Sample";

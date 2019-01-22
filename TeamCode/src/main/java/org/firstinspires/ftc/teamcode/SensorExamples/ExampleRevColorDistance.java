@@ -36,6 +36,7 @@ import android.graphics.Color;
 import android.view.View;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
@@ -46,7 +47,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
  * Demonstrates how to setup and use Rev Color Distance sensor
  */
 @Autonomous(name = "Read Color and Dist Rev Sensor", group = "SensorExamples")
-//@Disabled
+@Disabled
 public class ExampleRevColorDistance extends OpMode {
 
     ColorSensor colorSensor;

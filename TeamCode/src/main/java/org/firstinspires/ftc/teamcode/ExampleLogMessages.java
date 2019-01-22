@@ -42,7 +42,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * Demonstrates how to use logcat messages OpMode
  */
 @Autonomous(name = "Log Example OpMode", group = "Example")
-//@Disabled
+@Disabled
 public class ExampleLogMessages extends OpMode {
 
     private ElapsedTime runtime = new ElapsedTime();

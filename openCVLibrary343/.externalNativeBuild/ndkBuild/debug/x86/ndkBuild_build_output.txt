@@ -1,11 +1,8 @@
 Android NDK: OpenCV: You should ignore warning about 'non-system libraries in linker flags' and 'opencv_java' library.    
 Android NDK:         'OPENCV_INSTALL_MODULES:=on' can be used to build APK with included OpenCV binaries    
-rm -f /home/alvis/Projects/ftc_app/openCVLibrary343/build/intermediates/ndkBuild/debug/lib/x86/*
-rm -f /home/alvis/Projects/ftc_app/openCVLibrary343/build/intermediates/ndkBuild/debug/lib/x86/gdbserver
-rm -f /home/alvis/Projects/ftc_app/openCVLibrary343/build/intermediates/ndkBuild/debug/lib/x86/gdb.setup
-mkdir -p /home/alvis/Projects/ftc_app/openCVLibrary343/build/intermediates/ndkBuild/debug/lib/x86
-echo [x86] "Gdbserver      ": "[i686-linux-android] /home/alvis/Projects/ftc_app/openCVLibrary343/build/intermediates/ndkBuild/debug/lib/x86/gdbserver"
-install -p /home/alvis/Android/Sdk/ndk-bundle/prebuilt/android-x86/gdbserver/gdbserver /home/alvis/Projects/ftc_app/openCVLibrary343/build/intermediates/ndkBuild/debug/lib/x86/gdbserver
-echo [x86] "Gdbsetup       ": "/home/alvis/Projects/ftc_app/openCVLibrary343/build/intermediates/ndkBuild/debug/lib/x86/gdb.setup"
-echo "set solib-search-path /home/alvis/Projects/ftc_app/openCVLibrary343/build/intermediates/ndkBuild/debug/obj/local/x86" > /home/alvis/Projects/ftc_app/openCVLibrary343/build/intermediates/ndkBuild/debug/lib/x86/gdb.setup
-echo "directory /home/alvis/Android/Sdk/ndk-bundle/sysroot /home/alvis/Android/Sdk/ndk-bundle/sources/cxx-stl/system" >> /home/alvis/Projects/ftc_app/openCVLibrary343/build/intermediates/ndkBuild/debug/lib/x86/gdb.setup
+md "C:\Users\robouser\Documents\GitHub\ftc_app\openCVLibrary343\build\intermediates\ndkBuild\debug\lib\x86" >NUL 2>NUL || rem
+C:/Users/robouser/AppData/Local/Android/Sdk/ndk-bundle/build//../prebuilt/windows-x86_64/bin/echo.exe [x86] "Gdbserver      ": "[i686-linux-android] C:\Users\robouser\Documents\GitHub\ftc_app\openCVLibrary343\build\intermediates\ndkBuild\debug\lib/x86/gdbserver"
+copy /b/y "C:\Users\robouser\AppData\Local\Android\Sdk\ndk-bundle\build\\..\prebuilt\android-x86\gdbserver\gdbserver" "C:\Users\robouser\Documents\GitHub\ftc_app\openCVLibrary343\build\intermediates\ndkBuild\debug\lib\x86\gdbserver" > NUL
+C:/Users/robouser/AppData/Local/Android/Sdk/ndk-bundle/build//../prebuilt/windows-x86_64/bin/echo.exe [x86] "Gdbsetup       ": "C:\Users\robouser\Documents\GitHub\ftc_app\openCVLibrary343\build\intermediates\ndkBuild\debug\lib/x86/gdb.setup"
+C:/Users/robouser/AppData/Local/Android/Sdk/ndk-bundle/build//../prebuilt/windows-x86_64/bin/echo.exe "set solib-search-path C:/Users/robouser/Documents/GitHub/ftc_app/openCVLibrary343/build/intermediates/ndkBuild/debug/obj/local/x86" > C:\Users\robouser\Documents\GitHub\ftc_app\openCVLibrary343\build\intermediates\ndkBuild\debug\lib/x86/gdb.setup
+C:/Users/robouser/AppData/Local/Android/Sdk/ndk-bundle/build//../prebuilt/windows-x86_64/bin/echo.exe "directory C:/Users/robouser/AppData/Local/Android/Sdk/ndk-bundle/build//../sysroot C:/Users/robouser/AppData/Local/Android/Sdk/ndk-bundle/build//../sources/cxx-stl/system" >> C:\Users\robouser\Documents\GitHub\ftc_app\openCVLibrary343\build\intermediates\ndkBuild\debug\lib/x86/gdb.setup

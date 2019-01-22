@@ -45,7 +45,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 @TeleOp(name = "Example Servo with Joystick", group = "Example")
-//@Disabled
+@Disabled
 
 public class ExampleServo extends OpMode {
 
