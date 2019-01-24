@@ -5,6 +5,7 @@ import android.util.Log;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.team7234.RoverRuckus.common.HardwareBotman;
+import org.firstinspires.ftc.team7234.RoverRuckus.common.enums.DetectorType;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -43,7 +44,7 @@ public class BotmanTeleOp extends OpMode {
             /* This line of code tells that robot to ignore the camera.  We do not want to
             use the camera in teleop, so as to save CPU cycles and make the code run faster..*/
         try {
-            robot.init(hardwareMap, false);
+            robot.init(hardwareMap, DetectorType.DISABLED);
         }
         catch (Exception ex){
             Log.e(logTag, ex.toString());

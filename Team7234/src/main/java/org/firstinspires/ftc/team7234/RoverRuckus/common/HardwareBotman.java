@@ -5,18 +5,39 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+import org.firstinspires.ftc.team7234.RoverRuckus.common.Imaging.CascadeDetector;
 import org.firstinspires.ftc.team7234.RoverRuckus.common.Imaging.ContourDetector;
 import org.firstinspires.ftc.team7234.RoverRuckus.common.Imaging.MineralDetector;
+import org.firstinspires.ftc.team7234.RoverRuckus.common.enums.DetectorType;
+
+import java.util.List;
 
 public class HardwareBotman {
 
     public HardwareBotman(){}
 
     //region Members
+
+    private static final String TFOD_MODEL_ASSET = "RoverRuckus.tflite";
+    private static final String LABEL_GOLD_MINERAL = "Gold Mineral";
+    private static final String LABEL_SILVER_MINERAL = "Silver Mineral";
+    private static final String VUFORIA_KEY = "AcZlc3n/////AAAAGWPeDCNLuk38gPuwF9cpyK2BYbGciGSeJy9AkSXPprQUEtg/VxgqB6j9WJuQvGo4pq+h4gwPSd134WD707FXnbuJjqdqkh5/92mATPs96WQ2RVoaU8QLbsJonufIl2T6qqqT83aOJHbz34mGJszad+Mw7VAWM11av5ltOoq8/rSKbmSFxAVi3d7oiT3saE0XBx4svhpGLwauy6Y0L7X0fC7FwHKCnw/RPL4V+Q8v2rtCTOwvjfnjxmRMind01HSWcxd9ppBwzvHVCPhePccnyWVv5jNiYXia9r4FlrJpAPgZ1GsCfdbt6AoT6Oh2Hnx267J+MHUnLi/C+0brvnQfcDregLBfnZApfd2c1WDiXJp/";
+
+    private VuforiaLocalizer vuforia;
+    public TFObjectDetector tfod;
+
+    byte AXIS_MAP_CONFIG_BYTE = 0x18; //This is what to write to the AXIS_MAP_CONFIG register to swap x and z axes
+    byte AXIS_MAP_SIGN_BYTE = 0x00; //This is what to write to the AXIS_MAP_SIGN register to negate the z axis
+
     public DcMotor rightWheel;
     public DcMotor leftWheel;
     public DcMotor extension;
@@ -33,6 +54,14 @@ public class HardwareBotman {
 
     MineralDetector detector;
 
+    public minerals mineralState = minerals.GOLD_LEFT;
+
+    public enum minerals {
+        GOLD_LEFT,
+        GOLD_CENTER,
+        GOLD_RIGHT,
+        GOLD_NOT_FOUND
+    }
     //endregion
 
     /* local OpMode members. */
@@ -40,12 +69,28 @@ public class HardwareBotman {
     private ElapsedTime period  = new ElapsedTime();
 
     public int time;
+    private boolean usingTensorflow = false;
 
     private final String logTag = HardwareBotman.class.getName();
 
-    public void init(HardwareMap ahwMap, boolean useCamera){
-        if (useCamera){
-            detector = new ContourDetector();
+    public void init(HardwareMap ahwMap, DetectorType detectorType){
+        switch (detectorType){
+            case CASCADE:
+                detector = new CascadeDetector();
+                break;
+            case CONTOUR:
+                detector = new ContourDetector();
+                break;
+            case TENSORFLOW:
+                detector = null;
+                usingTensorflow = true;
+                initVuforia();
+                initTfod();
+                break;
+            case DISABLED:
+                detector = null;
+                usingTensorflow = false;
+                break;
         }
         init(ahwMap);
     }
@@ -134,6 +179,20 @@ public class HardwareBotman {
         extension.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         armTwist.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
+
+    public void RunByEncoders(){
+        //Stop the motors and reset the encoders
+        leftWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        extension.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+    }
+
+    public void DriveWithoutEncoders(){
+        //Stop the motors and reset the encoders
+        leftWheel.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightWheel.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    }
+
     /*
     This block of code helps the robot follow a straight path while using the gyro.  If the robot
     rotates too far one way, then it will correct itself and continue following this path.
@@ -155,6 +214,89 @@ public class HardwareBotman {
             rightWheel.setPower(speed);
         }
 
+
+
+    }
+    /**
+     * Initialize the Vuforia localization engine.
+     */
+    private void initVuforia() {
+        /*
+         * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
+         */
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
+
+        parameters.vuforiaLicenseKey = VUFORIA_KEY;
+        parameters.cameraDirection = VuforiaLocalizer.CameraDirection.BACK;
+
+        //  Instantiate the Vuforia engine
+        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+
+        // Loading trackables is not necessary for the Tensor Flow Object Detection engine.
+    }
+
+    /**
+     * Initialize the Tensor Flow Object Detection engine.
+     */
+    private void initTfod() {
+        int tfodMonitorViewId = hwMap.appContext.getResources().getIdentifier(
+                "tfodMonitorViewId", "id", hwMap.appContext.getPackageName());
+        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_GOLD_MINERAL, LABEL_SILVER_MINERAL);
+    }
+
+    /**
+     * Tensor Flow detect the gold mineral location
+     */
+    public void ObjectDetetion(Telemetry telemetry){
+        if (tfod != null) {
+            List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+            if (updatedRecognitions != null) {
+                telemetry.addData("# Object Detected", updatedRecognitions.size());
+                int goldMineralX = -100;
+                int goldMineralY=-100;
+                for (Recognition recognition : updatedRecognitions) {
+                    if (recognition.getLabel().equals(LABEL_GOLD_MINERAL)) {
+                        if(recognition.getTop()>900) {
+                            goldMineralX = (int) recognition.getLeft();
+                            goldMineralY = (int) recognition.getTop();
+                        }
+                    }
+                }
+                telemetry.addData("Gold Mineral X Value",goldMineralX);
+                telemetry.addData("Gold Mineral Y Value",goldMineralY);
+                if (goldMineralX == -100) {
+                    mineralState = minerals.GOLD_LEFT;
+                    telemetry.addData("Gold Mineral Position", "Left");
+                } else if (goldMineralX > 345) {
+                    mineralState = minerals.GOLD_RIGHT;
+                    telemetry.addData("Gold Mineral Position", "Right");
+                } else if (goldMineralX < 345){
+                    mineralState = minerals.GOLD_CENTER;
+                    telemetry.addData("Gold Mineral Position", "Center");
+                }
+
+            }
+        }
+    }
+
+    public void gyroConfigMode() {
+        //Need to be in CONFIG mode to write to registers
+        imu.write8(BNO055IMU.Register.OPR_MODE,BNO055IMU.SensorMode.CONFIG.bVal & 0x0F);
+    }
+
+    public void changeAxis() {
+        //Write to the AXIS_MAP_CONFIG register
+        imu.write8(BNO055IMU.Register.AXIS_MAP_CONFIG,AXIS_MAP_CONFIG_BYTE & 0b111111);
+
+        //Write to the AXIS_MAP_SIGN register
+        imu.write8(BNO055IMU.Register.AXIS_MAP_SIGN,AXIS_MAP_SIGN_BYTE & 0b111);
+    }
+
+    public void gyroReadMode() {
+        //Need to change back into the IMU mode to use the gyro
+        imu.write8(BNO055IMU.Register.OPR_MODE, BNO055IMU.SensorMode.IMU.bVal & 0b1111);
     }
 
 

@@ -11,6 +11,7 @@ import org.firstinspires.ftc.team7234.RoverRuckus.common.Imaging.Mineral;
 import org.firstinspires.ftc.team7234.RoverRuckus.common.Imaging.MineralPosition;
 import org.firstinspires.ftc.team7234.RoverRuckus.common.Imaging.SilverMineral;
 import org.firstinspires.ftc.team7234.RoverRuckus.common.enums.AllianceColor;
+import org.firstinspires.ftc.team7234.RoverRuckus.common.enums.DetectorType;
 import org.firstinspires.ftc.team7234.RoverRuckus.common.enums.FieldPosition;
 
 import java.util.ArrayList;
@@ -50,9 +51,13 @@ public class AutoBase extends OpMode {
 
     private MineralPosition finalPos = null;
 
-    private final double EXTENSION_TARGET = -38245;
-    private final double LEFT_MINERAL_THETA = -30;
-    private final double RIGHT_MINERAL_THETA = 30;
+    private final double EXTENSION_TARGET = 10750;
+    private final double LEFT_MINERAL_THETA = 15;
+    private final double RIGHT_MINERAL_THETA = -20;
+
+    private boolean modeChange = false;
+    private boolean axisChanged = false;
+    private boolean gyroRead = false;
 
     private final double DEPOT_THETA = -135; //Rotation target for going from
 
@@ -88,15 +93,18 @@ public class AutoBase extends OpMode {
         TURN_TO_MINERAL,    //Turn to the mineral in order to knock it off
         REMOVE_MINERAL,     //Go forward to knock off the mineral
 
+        CRATER_BACKING_UP,
+        CRATER_TURN_TO_WALL,
+        CRATER_NAV_TO_WALL,
         CRATER_TURN_TO_DEPOT, //Turn towards the depot, from the crater
         CRATER_NAV_TO_DEPOT,  //Navigate to the depot from the crater
+        CRATER_NAV_TO_CRATER,
 
         DEPOT_TURN_TO_DEPOT,
-        DEPOT_GO_TO_DEPOT,
+        DEPOT_DRIVE_TO_DEPOT,
+        DEPOT_TURN_TO_CRATER,
+        DEPOT_DRIVE_TO_CRATER,
 
-        RECENTER_TO_CORNER,
-
-        DEPOSIT_OBJECT,
         STOP
     }
 
@@ -106,7 +114,7 @@ public class AutoBase extends OpMode {
     @Override
     public void init() {
 
-        robot.init(hardwareMap, true);
+        robot.init(hardwareMap, DetectorType.CASCADE);
         if (fieldPosition == FieldPosition.CRATER){
             robot.detector.setMaskCrater(true);
         }
@@ -160,11 +168,14 @@ public class AutoBase extends OpMode {
             case PREP:
                 elapsedTime.reset();
                 robot.extension.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                robot.leftWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                robot.rightWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                 robot.extension.setPower(1.0);
                 state = CurrentState.LOWER;
+                elapsedTime.reset();
                 break;
             case LOWER:
-                if (robot.extension.getCurrentPosition() < EXTENSION_TARGET || elapsedTime.milliseconds() > 14000){ //Failsafe
+                if (robot.extension.getCurrentPosition() >= EXTENSION_TARGET || elapsedTime.milliseconds() > 14000){ //Failsafe
                     elapsedTime.reset();
 
                     if (timer != null){
@@ -179,8 +190,7 @@ public class AutoBase extends OpMode {
 
                 break;
             case FORWARD:         //Moves the robot forward to completely detach from the latch.  May need modification.
-                if (elapsedTime.milliseconds() >= 1000){
-                    elapsedTime.reset();
+                if (robot.leftWheel.getCurrentPosition() >= 1000){
 
                     robot.leftWheel.setPower(0.0);
                     robot.rightWheel.setPower(0.0);
@@ -294,47 +304,39 @@ public class AutoBase extends OpMode {
                 break;
 
             case TURN_TO_MINERAL:
-                if (elapsedTime.milliseconds() < 3000) { //Stops if turning goes over 2 seconds
-                    switch (finalPos) {
-                        case CENTER:
-                            elapsedTime.reset();
+                switch (finalPos) {
+                    case CENTER:
+                        robot.leftWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                        state = CurrentState.REMOVE_MINERAL;
+                        break;
+                    case LEFT:
+                        robot.leftWheel.setPower(-0.3);
+                        robot.rightWheel.setPower(0.3);
+                        Log.v(TAG, "Now turning to left mineral, robot heading is: " + robot.heading() + ", Target Heading is: " + LEFT_MINERAL_THETA);
+                        if (robot.heading() > LEFT_MINERAL_THETA){
+                            robot.leftWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
                             state = CurrentState.REMOVE_MINERAL;
-                            break;
-                        case LEFT:
-                            robot.leftWheel.setPower(-0.5);
-                            robot.rightWheel.setPower(0.5);
-                            Log.v(TAG, "Now turning to left mineral, robot heading is: " + robot.heading() + ", Target Heading is: " + LEFT_MINERAL_THETA);
-                            if (robot.heading() < LEFT_MINERAL_THETA || robot.heading() > LEFT_MINERAL_THETA + 360) {
-                                Log.i(TAG, "Left Turn completed, removing mineral");
-                                elapsedTime.reset();
-                                state = CurrentState.REMOVE_MINERAL;
-                            }
-                            break;
-                        case RIGHT:
-                            robot.leftWheel.setPower(0.5);
-                            robot.rightWheel.setPower(-0.5);
-                            Log.v(TAG, "Now turning to right mineral, robot heading is: " + robot.heading() + ", Target Heading is: " + LEFT_MINERAL_THETA);
-                            if (robot.heading() < RIGHT_MINERAL_THETA || robot.heading() < RIGHT_MINERAL_THETA-360) {
-                                Log.i(TAG, "Right Turn completed, removing mineral");
-                                elapsedTime.reset();
-                                state = CurrentState.REMOVE_MINERAL;
-                            }
-                            break;
-                        default:
-                            Log.i(TAG, "No turn necessary, removing mineral");
-                            elapsedTime.reset();
+                        }
+                    case RIGHT:
+                        robot.leftWheel.setPower(0.3);
+                        robot.rightWheel.setPower(-0.3);
+                        Log.v(TAG, "Now turning to right mineral, robot heading is: " + robot.heading() + ", Target Heading is: " + RIGHT_MINERAL_THETA);
+                        if (robot.heading() < RIGHT_MINERAL_THETA){
+                            robot.leftWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
                             state = CurrentState.REMOVE_MINERAL;
-                            break;
-                    }
+                        }
+                        break;
+                    default:
+                        robot.leftWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                        state = CurrentState.REMOVE_MINERAL;
+                        break;
                 }
-                else {
-                    state = CurrentState.REMOVE_MINERAL;
-                }
+
                 break;
 
             case REMOVE_MINERAL:
-                if (elapsedTime.milliseconds() >= 2000){
-                    Log.i(TAG, "Mineral removed");
+                robot.leftWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                if (robot.leftWheel.getCurrentPosition()>1200){
                     robot.rightWheel.setPower(0.0);
                     robot.leftWheel.setPower(0.0);
                     switch (fieldPosition){
@@ -342,66 +344,152 @@ public class AutoBase extends OpMode {
                             state = CurrentState.DEPOT_TURN_TO_DEPOT;
                             break;
                         case CRATER:
-                            state = CurrentState.CRATER_NAV_TO_DEPOT;
+                            state = CurrentState.CRATER_BACKING_UP;
+                            break;
                     }
+                }
+                else {
+                    robot.rightWheel.setPower(0.4);
+                    robot.leftWheel.setPower(0.4);
+                }
+                break;
+
+            case CRATER_BACKING_UP:
+                if (robot.leftWheel.getCurrentPosition()<=350){
+                    robot.rightWheel.setPower(0.0);
+                    robot.leftWheel.setPower(0.0);
+                    state = CurrentState.CRATER_TURN_TO_WALL;
+                }
+                else {
+                    robot.rightWheel.setPower(-0.4);
+                    robot.leftWheel.setPower(-0.4);
+                }
+                break;
+
+            case CRATER_TURN_TO_WALL:
+                robot.leftWheel.setPower(-0.3);
+                robot.rightWheel.setPower(0.3);
+                if (robot.heading() > 40){
+                    robot.leftWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                    state = CurrentState.CRATER_NAV_TO_WALL;
+                }
+                break;
+
+            case CRATER_NAV_TO_WALL:
+                robot.leftWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                if (robot.leftWheel.getCurrentPosition()>2800){
+                    robot.rightWheel.setPower(0.0);
+                    robot.leftWheel.setPower(0.0);
+                    state = CurrentState.CRATER_TURN_TO_DEPOT;
+                }
+                else {
+                    robot.driveByGyro(0.4,80);
+                }
+
+                break;
+
+            case CRATER_TURN_TO_DEPOT:
+                robot.leftWheel.setPower(-0.3);
+                robot.rightWheel.setPower(0.3);
+                if (robot.heading() > 100){
+                    robot.leftWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                    state = CurrentState.CRATER_NAV_TO_DEPOT;
+                }
+                break;
+
+            case CRATER_NAV_TO_DEPOT:
+                robot.leftWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                if (robot.leftWheel.getCurrentPosition()>2500){
+                    robot.rightWheel.setPower(0.0);
+                    robot.leftWheel.setPower(0.0);
+                    state = CurrentState.CRATER_NAV_TO_CRATER;
+                }
+                else {
+                    robot.driveByGyro(0.4,130);
+                }
+                break;
+
+            case CRATER_NAV_TO_CRATER:
+                robot.leftWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                robot.leftWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                if (robot.leftWheel.getCurrentPosition()<=-4000){
+                    robot.rightWheel.setPower(0.0);
+                    robot.leftWheel.setPower(0.0);
                     state = CurrentState.STOP;
                 }
                 else {
-                    robot.rightWheel.setPower(1.0);
-                    robot.leftWheel.setPower(1.0);
+                    robot.driveByGyro(-0.4,180);
                 }
                 break;
-
-            case RECENTER_TO_CORNER:
-                switch (finalPos){
-                    case CENTER:
-                        state = CurrentState.DEPOSIT_OBJECT;
-                        break;
-                    case LEFT:
-                        robot.leftWheel.setPower(0.5);
-                        robot.rightWheel.setPower(-0.5);
-                        if (robot.heading() > -LEFT_MINERAL_THETA || robot.heading() < -LEFT_MINERAL_THETA - 360 ){
-                            robot.leftWheel.setPower(0.0);
-                            robot.rightWheel.setPower(0.0);
-                            state = CurrentState.DEPOSIT_OBJECT;
-                        }
-                        break;
-                    case RIGHT:
-                        robot.leftWheel.setPower(-0.5);
-                        robot.rightWheel.setPower(0.5);
-                        if (robot.heading() < -RIGHT_MINERAL_THETA || robot.heading() > -RIGHT_MINERAL_THETA + 360){
-                            robot.leftWheel.setPower(0.0);
-                            robot.rightWheel.setPower(0.0);
-                            state = CurrentState.DEPOSIT_OBJECT;
-                        }
-                        break;
-                }
-                break;
-
 
             case DEPOT_TURN_TO_DEPOT:
                 switch (finalPos){
                     case CENTER:
+                        robot.leftWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                        state = CurrentState.DEPOT_DRIVE_TO_DEPOT;
                         break;
                     case LEFT:
+                        robot.leftWheel.setPower(0.1);
+                        robot.rightWheel.setPower(-0.1);
+                        Log.v(TAG, "Now turning to the depot, robot heading is: " + robot.heading() + ", Target Heading is: " + -DEPOT_THETA);
+                        if (robot.heading() < -20){
+                            robot.leftWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                            state = CurrentState.DEPOT_DRIVE_TO_DEPOT;
+                        }
                         break;
                     case RIGHT:
+                        robot.leftWheel.setPower(-0.1);
+                        robot.rightWheel.setPower(0.1);
+                        Log.v(TAG, "Now turning to the depot, robot heading is: " + robot.heading() + ", Target Heading is: " + DEPOT_THETA);
+                        if (robot.heading() > DEPOT_THETA){
+                            robot.leftWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                            state = CurrentState.DEPOT_DRIVE_TO_DEPOT;
+                        }
+                        break;
+                    default:
+                        robot.leftWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                        state = CurrentState.DEPOT_DRIVE_TO_DEPOT;
                         break;
                 }
-                state = CurrentState.STOP;
-                break;
-
-            case DEPOT_GO_TO_DEPOT:
-                state = CurrentState.STOP;
                 break;
 
 
-            case CRATER_TURN_TO_DEPOT:
-                state = CurrentState.STOP;
+            case DEPOT_DRIVE_TO_DEPOT:
+                robot.leftWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                if (robot.leftWheel.getCurrentPosition()>=1800){
+                    robot.rightWheel.setPower(0.0);
+                    robot.leftWheel.setPower(0.0);
+                    state = CurrentState.DEPOT_TURN_TO_CRATER;
+                }
+                else {
+                    robot.leftWheel.setPower(.3);
+                    robot.rightWheel.setPower(.3);
+                }
                 break;
 
-            case CRATER_NAV_TO_DEPOT:
-                state = CurrentState.STOP;
+            case DEPOT_TURN_TO_CRATER:
+                if (robot.heading() > 85){
+                    robot.rightWheel.setPower(0.0);
+                    robot.leftWheel.setPower(0.0);
+                    robot.leftWheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                    state = CurrentState.DEPOT_DRIVE_TO_CRATER;
+                }
+                else {
+                    robot.rightWheel.setPower(0.3);
+                    robot.leftWheel.setPower(-0.3);
+                }
+                break;
+
+            case  DEPOT_DRIVE_TO_CRATER:
+                robot.leftWheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                if (robot.leftWheel.getCurrentPosition()>=4000){
+                    robot.rightWheel.setPower(0.0);
+                    robot.leftWheel.setPower(0.0);
+                    state = CurrentState.STOP;
+                }
+                else {
+                    robot.driveByGyro(0.4, 130);
+                }
                 break;
 
             case STOP:
